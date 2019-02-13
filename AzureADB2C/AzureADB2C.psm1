@@ -57,7 +57,7 @@ function Get-AzureADB2CAccessToken {
     # Log in to Azure.
     $User = $Username + "@" + $TenantId
     $Cred = New-Object System.Management.Automation.PSCredential ($User, ($Password | ConvertTo-SecureString -AsPlainText -Force))
-    $var = Login-AzureRmAccount -TenantId $TenantId -Credential $Cred
+    Login-AzureRmAccount -TenantId $TenantId -Credential $Cred | Out-Null
 
     # Retrieve all tokens
     $context = Set-AzureRmContext -TenantId $TenantId -Name B2C -Force
@@ -291,10 +291,10 @@ function New-AzureADB2CKeyContainer {
         - enc
         - sig
     .EXAMPLE
-        PS C:\>New-AzureADB2CKeyContainer -B2CSession <b2csession> -Name <string> -KeyUsage enc
+        PS C:\>New-AzureADB2CKeyContainer -B2CSession <b2csession> -Name "New Name" -KeyUsage enc
         This command creates a new keycontainer for encryption in your Azure AD B2C tenant
     .EXAMPLE
-        PS C:\>New-AzureADB2CKeyContainer -B2CSession <b2csession> -Name <string> -KeyUsage sig
+        PS C:\>New-AzureADB2CKeyContainer -B2CSession <b2csession> -Name "New Name" -KeyUsage sig
         This command creates a new keycontainer for signing in your Azure AD B2C tenant
     .LINK
         Get-AzureADB2CKeyContainer
@@ -433,15 +433,13 @@ function New-AzureADB2CApplication {
         Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
     .PARAMETER Name
         Specifies the name of an Azure AD B2C application.
-    .PARAMETER ReplyUrl
-        Specifies the reply URL of an Azure AD B2C application.
     .PARAMETER ReplyUrls
         Specifies the reply URLs of an Azure AD B2C application.
     .EXAMPLE
-        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name <string> -ReplyUrl https://localhost:1234
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -ReplyUrls https://localhost:1234
         This command creates a B2C application in your Azure AD B2C tenant with it's reply URL set to localhost
     .EXAMPLE
-        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name <string> -ReplyUrls @("https://localhost:1234", "https://www.example.org")
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -ReplyUrls @("https://localhost:1234", "https://www.example.org")
         This command creates a B2C application in your Azure AD B2C tenant with multiple reply URLs
     .LINK
         Get-AzureADB2CApplication
@@ -456,10 +454,7 @@ function New-AzureADB2CApplication {
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
-        [parameter(Mandatory = $true, Position = 2, ParameterSetName = "Single")]
-        [ValidateNotNullOrEmpty()]
-        [string]$ReplyUrl,
-        [parameter(Mandatory = $true, Position = 2, ParameterSetName = "Multiple")]
+        [parameter(Mandatory = $true, Position = 2)]
         [ValidateNotNullOrEmpty()]
         [string[]]$ReplyUrls
     )
@@ -468,12 +463,8 @@ function New-AzureADB2CApplication {
     if ($ReplyUrls) {
         foreach ($replyUrl in $ReplyUrls) {
             $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
-            $var = $replyUrlsData.Add($replyUrlData)
+            $replyUrlsData.Add($replyUrlData) | Out-Null
         }
-    }
-    else {
-        $ReplyUrls = @( $ReplyUrl )
-        $replyUrlsData = @( @{ "url" = "$ReplyUrl"; "type" = 1 } )
     }
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PostNewApplication?tenantId=$($B2CSession.TenantId)"
@@ -503,47 +494,48 @@ function Set-AzureADB2CApplication {
     .PARAMETER ReplyUrl
         Specifies the reply URL of an Azure AD B2C application.
     .PARAMETER ReplyUrls
-        Specifies the reply URLs of an Azure AD B2C application.        
+        Specifies the reply URLs of an Azure AD B2C application.
+    .PARAMETER RequiredResourceAccess
+        Specifices the API and scopes that an Azure AD B2C application can access
     .EXAMPLE
-        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -ApplicationId -Name <string> -ReplyUrl https://localhost:1234
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -ApplicationId ed192e92-84d4-4baf-997d-1e190a81f28e -Name "New Name" -ReplyUrl https://localhost:1234
         This command sets a new name and reply URL for a B2C application in your Azure AD B2C tenant
+    .EXAMPLE
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -ApplicationId ed192e92-84d4-4baf-997d-1e190a81f28e -RequiredResourceAccess <scopes>
+        This command sets the scopes that a B2C application can access
     .LINK
         Get-AzureADB2CApplication
         New-AzureADB2CApplication
         Remove-AzureADB2CApplication
     #> 
-    [CmdletBinding(DefaultParameterSetName='Single')]
+    [CmdletBinding(DefaultParameterSetName='Attributes')]
     Param(
-        [parameter(Mandatory = $true, Position = 0)]
+        [parameter(Mandatory = $true, Position = 0, ParameterSetName = "Attributes")]
+        [parameter(Mandatory = $true, Position = 0, ParameterSetName = "Scope")]
         [ValidateNotNullOrEmpty()]
         [PSCustomObject]$B2CSession,
-        [parameter(Mandatory = $true, Position = 1)]
+        [parameter(Mandatory = $true, Position = 1, ParameterSetName = "Attributes")]
+        [parameter(Mandatory = $true, Position = 1, ParameterSetName = "Scope")]
         [ValidateNotNullOrEmpty()]
         [string]$ApplicationId,
-        [parameter(Mandatory = $false)]
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
-        [parameter(Mandatory = $false, ParameterSetName = "Single")]
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [string]$ReplyUrl,
-        [parameter(Mandatory = $false, ParameterSetName = "Multiple")]
+        [string[]]$ReplyUrls,
+        [parameter(Mandatory = $false, ParameterSetName = "Scope")]
         [ValidateNotNullOrEmpty()]
-        [string[]]$ReplyUrls
+        [Microsoft.Open.AzureAD.Model.RequiredResourceAccess]$RequiredResourceAccess     
     )
     
     $application = Get-AzureADB2CApplication -B2CSession $B2CSession -ApplicationId $ApplicationId
 
-    if ($ReplyUrls -or $ReplyUrl) {
+    if ($ReplyUrls) {
         [System.Collections.ArrayList]$replyUrlsData = @()
-        if ($ReplyUrls) {
-            foreach ($replyUrl in $ReplyUrls) {
-                $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
-                $var = $replyUrlsData.Add($replyUrlData)
-            }
-        }
-        else {
-            $ReplyUrls = @( $ReplyUrl )
-            $replyUrlsData = @( @{ "url" = "$ReplyUrl"; "type" = 1 } )
+        foreach ($replyUrl in $ReplyUrls) {
+            $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
+            $replyUrlsData.Add($replyUrlData) | Out-Null
         }
 
         $application.replyUrls = $ReplyUrls
@@ -554,13 +546,38 @@ function Set-AzureADB2CApplication {
         $application.applicationName = $Name
     }
 
-    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PatchApplication?tenantId=$($B2CSession.TenantId)&id=$($application.id)"
-    $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
-    $body = $application | ConvertTo-Json -Compress
-
     $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+    $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
+    if ($RequiredResourceAccess) {
+        $serviceprincipal = Get-AzureADServicePrincipal -Filter "AppId eq '$($RequiredResourceAccess.ResourceAppId)'"
+        $permissions = Get-AzureADB2CApplicationPermission -B2CSession $B2CSession -ApplicationId $ApplicationId
+        $permission = $permissions | Where-Object { $_.resourceId -eq $serviceprincipal.ObjectId }
+
+        [System.Collections.ArrayList]$scopes = @()
+        foreach ($access in $req.ResourceAccess) { 
+            $scope = $serviceprincipal.Oauth2Permissions | where-object { $_.Id -eq $access.Id }
+            $scopes.Add($scope.Value) | Out-Null
+        }
+        
+        if ($permission) {
+            $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/UpdatePermission?tenantId=$($B2CSession.TenantId)" 
+            $permission.permissionValues = $scopes
+            $body = $permission | ConvertTo-Json -Compress
+
+            $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+        } else {
+            $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/AddPermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId&resourceApplicationId=$($RequiredResourceAccess.ResourceAppId)" 
+            $body = ConvertTo-Json -Compress -InputObject @($scopes)
+            
+            $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers
+        }
+    } else {
+        $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PatchApplication?tenantId=$($B2CSession.TenantId)&id=$($application.id)"
+        $body = $application | ConvertTo-Json -Compress
+
+        $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+    }
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to update AzureADB2CApplication"
     }
@@ -603,4 +620,39 @@ function Remove-AzureADB2CApplication {
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to remove AzureADB2CApplication"
     }
+}
+
+function Get-AzureADB2CApplicationPermission {
+    <#
+    .SYNOPSIS
+        Gets all permissions for a B2C application.
+    .DESCRIPTION
+        The Get-AzureADB2CApplicationPermissions cmdlet gets a list of permissions for an Azure Active Directory B2C application.
+    .PARAMETER B2CSession
+        Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
+    .PARAMETER ApplicationId
+        Specifies the ID of an Azure Active Directory B2C application.
+    .EXAMPLE
+        PS C:\>Get-AzureADB2CApplicationPermission -B2CSession $b2csession -ApplicationId ed192e92-84d4-4baf-997d-1e190a81f28e
+        This command gets a list of permissions for the given application.
+    .LINK
+        Set-AzureADB2CApplication
+    #>
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory = $true, Position = 0)]
+        [ValidateNotNullOrEmpty()]
+        [PSCustomObject]$B2CSession,
+        [parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ApplicationId
+    )
+            
+    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/RetrievePermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId"    
+    $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
+
+    $response = $null
+    $response = Invoke-WebRequest -Uri $uri -Headers $headers -ContentType "application/json" | ConvertFrom-Json
+
+    return $response
 }
