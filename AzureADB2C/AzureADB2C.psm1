@@ -501,8 +501,17 @@ function Set-AzureADB2CApplication {
         PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -ApplicationId ed192e92-84d4-4baf-997d-1e190a81f28e -Name "New Name" -ReplyUrl https://localhost:1234
         This command sets a new name and reply URL for a B2C application in your Azure AD B2C tenant
     .EXAMPLE
-        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -ApplicationId ed192e92-84d4-4baf-997d-1e190a81f28e -RequiredResourceAccess <scopes>
-        This command sets the scopes that a B2C application can access
+        PS C:\>$sp = Get-AzureADServicePrincipal -ObjectId <webapi objectId>
+        PS C:\>$sp.Oauth2Permissions | select Id,AdminConsentDisplayName,Value
+
+        PS C:\>$req = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess"
+        PS C:\>$acc1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "permissionId1","Scope"
+        PS C:\>$acc2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "permissionId2","Scope"
+        PS C:\>$req.ResourceAccess = $acc1,$acc2
+        PS C:\>$req.ResourceAppId = "<webapi appId>"
+
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -ApplicationId ed192e92-84d4-4baf-997d-1e190a81f28e -RequiredResourceAccess $req
+        This command sets the scopes that a B2C application can access to permissionId1 and permissionId2 of API webapi
     .LINK
         Get-AzureADB2CApplication
         New-AzureADB2CApplication
@@ -595,7 +604,7 @@ function Remove-AzureADB2CApplication {
         Specifies the object ID of an Azure Active Directory B2C application. 
     .EXAMPLE
         PS C:\>Remove-AzureADB2CApplication -B2CSession <b2csession> -ApplicationObjectId <string>
-        This command removes the B2C applicaiont with the given object ID from your Azure AD B2C tenant 
+        This command removes the B2C application with the given object ID from your Azure AD B2C tenant 
     .LINK
         Get-AzureADB2CApplication
         New-AzureADB2CApplication
@@ -656,3 +665,43 @@ function Get-AzureADB2CApplicationPermission {
 
     return $response
 }
+
+function Remove-AzureADB2CApplicationPermission {
+    <#
+    .SYNOPSIS
+        Deletes a permission from a B2C application.
+    .DESCRIPTION
+        The Remove-AzureADB2CApplicationPermissions cmdlet deletes a permission from an Azure Active Directory B2C application.
+    .PARAMETER B2CSession
+        Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
+    .PARAMETER PermissionGrantId
+        Specifies the ID of an Azure Active Directory B2C permission grant.
+    .EXAMPLE
+        PS C:\>Remove-AzureADB2CApplicationPermission -B2CSession $b2csession -PermissionGrantId <permissiongrantid>
+        This command removes the grant with the given ID from your Azure AD B2C tenant.
+    .LINK
+        Not used
+    #>
+    [CmdletBinding()]
+    Param(
+        [parameter(Mandatory = $true, Position = 0)]
+        [ValidateNotNullOrEmpty()]
+        [PSCustomObject]$B2CSession,
+        [parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$PermissionGrantId
+    )
+            
+    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/DeletePermission?tenantId=$($B2CSession.TenantId)&permissionGrantId=$PermissionGrantId"    
+    $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
+
+    $response = $null
+    $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
+
+    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+        Write-Error "Failed to remove Permission Grant"
+    }
+
+    return $response
+}
+
