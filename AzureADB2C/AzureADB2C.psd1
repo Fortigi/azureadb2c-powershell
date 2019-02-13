@@ -53,7 +53,7 @@
     # Modules that must be imported into the global environment prior to importing this module
     RequiredModules = @(
         @{"ModuleName" = "AzureRM"; "ModuleVersion" = "5.7.0"}
-        @{"ModuleName" = "AzureAD"}
+        @{"ModuleName" = "AzureAD"; "ModuleVersion" = "2.0.2.4"}
     )
 
     # Assemblies that must be loaded prior to importing this module
