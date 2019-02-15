@@ -433,6 +433,8 @@ function New-AzureADB2CApplication {
         Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
     .PARAMETER Name
         Specifies the name of an Azure AD B2C application.
+    .PARAMETER IdentifierUri
+        Specifies the unique URI to identify the API
     .PARAMETER ReplyUrls
         Specifies the reply URLs of an Azure AD B2C application.
     .EXAMPLE
@@ -454,9 +456,12 @@ function New-AzureADB2CApplication {
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
-        [parameter(Mandatory = $true, Position = 2)]
+        [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string[]]$ReplyUrls
+        [string[]]$ReplyUrls,
+        [parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$IdentifierUri
     )
     
     [System.Collections.ArrayList]$replyUrlsData = @()
@@ -469,7 +474,7 @@ function New-AzureADB2CApplication {
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PostNewApplication?tenantId=$($B2CSession.TenantId)"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)" }
-    $body = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = "$Name"; "enableWebClient" = "true"; "webClientAllowImplicitFlow" = "true"; "replyUrls" = $ReplyUrls; "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @(); "oAuth2Permissions" = @(); "replyUrlsData" = $replyUrlsData } | ConvertTo-Json -Compress
+    $body = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = "$Name"; "enableWebClient" = "true"; "webClientAllowImplicitFlow" = "true"; "replyUrls" = $ReplyUrls; "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @($IdentifierUri); "oAuth2Permissions" = @(); "replyUrlsData" = $replyUrlsData } | ConvertTo-Json -Compress
 
     $response = $null
     $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
@@ -491,6 +496,11 @@ function Set-AzureADB2CApplication {
         Specifies the ID of an Azure Active Directory B2C application.        
     .PARAMETER Name
         Specifies the name of an Azure AD B2C application.
+    .PARAMETER IdentifierUri
+        Specifies the unique URI to identify the API
+    .PARAMETER OAuth2Permissions
+        The collection of OAuth 2.0 permission scopes that the web API (resource) application exposes to client
+        applications. These permission scopes may be granted to client applications during consent.
     .PARAMETER ReplyUrl
         Specifies the reply URL of an Azure AD B2C application.
     .PARAMETER ReplyUrls
@@ -533,6 +543,12 @@ function Set-AzureADB2CApplication {
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
         [string[]]$ReplyUrls,
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
+        [ValidateNotNullOrEmpty()]
+        [string]$IdentifierUri,
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
+        [ValidateNotNullOrEmpty()]
+        [Object[]]$OAuth2Permissions,
         [parameter(Mandatory = $false, ParameterSetName = "Scope")]
         [ValidateNotNullOrEmpty()]
         [Microsoft.Open.AzureAD.Model.RequiredResourceAccess]$RequiredResourceAccess     
@@ -553,6 +569,14 @@ function Set-AzureADB2CApplication {
 
     if ($Name) {
         $application.applicationName = $Name
+    }
+
+    if ($IdentifierUri) {
+        $application.identifierUris = @( $IdentifierUri )
+    }
+
+    if ($OAuth2Permissions) {
+        $application.oAuth2Permissions = $OAuth2Permissions
     }
 
     $response = $null
