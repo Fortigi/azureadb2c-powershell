@@ -433,22 +433,33 @@ function New-AzureADB2CApplication {
         Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
     .PARAMETER Name
         Specifies the name of an Azure AD B2C application.
+    .PARAMETER EnableWebClient
+        Specifies whether this is a Web App / API
+    .PARAMETER AllowImplicitFlow
+        Indicates whether this application allows implicit flows (when your application needs to use OpenID Connect sign-in)
     .PARAMETER IdentifierUri
         Specifies the unique URI to identify the API
     .PARAMETER ReplyUrls
         Specifies the reply URLs of an Azure AD B2C application.
+    .PARAMETER EnableNativeClient
+        Specifies whether this is a Native app
+    .PARAMETER RedirectUris
+        Specifies the redirect URIs of an Azure AD B2C application.
     .EXAMPLE
         PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -ReplyUrls https://localhost:1234
         This command creates a B2C application in your Azure AD B2C tenant with it's reply URL set to localhost
     .EXAMPLE
-        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -ReplyUrls @("https://localhost:1234", "https://www.example.org")
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -ReplyUrls @("https://localhost:1234", "https://www.b2ccontoso.com")
         This command creates a B2C application in your Azure AD B2C tenant with multiple reply URLs
+    .EXAMPLE
+        PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -EnableNativeClient -RedirectUris com.b2ccontoso://redirect/path
+        This command creates a B2C application in your Azure AD B2C tenant with it's reply URL set to localhost
     .LINK
         Get-AzureADB2CApplication
         Remove-AzureADB2CApplication        
         Set-AzureADB2CApplication
     #> 
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='WebClient')]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -456,28 +467,70 @@ function New-AzureADB2CApplication {
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $false, ParameterSetName="WebClient")]
+        [parameter(Mandatory = $true, ParameterSetName="WebAndNativeClient")]
+        [ValidateNotNullOrEmpty()]
+        [switch]$EnableWebClient,
+        [parameter(Mandatory = $true, ParameterSetName="WebClient")]
+        [parameter(Mandatory = $true, ParameterSetName="WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
         [string[]]$ReplyUrls,
-        [parameter(Mandatory = $false)]
+        [parameter(Mandatory = $false, ParameterSetName="WebClient")]
+        [parameter(Mandatory = $false, ParameterSetName="WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [string]$IdentifierUri
+        [string]$IdentifierUri,
+        [parameter(Mandatory = $false, ParameterSetName="WebClient")]
+        [parameter(Mandatory = $false, ParameterSetName="WebAndNativeClient")]
+        [ValidateNotNullOrEmpty()]
+        [switch]$AllowImplicitFlow,
+        [parameter(Mandatory = $true, ParameterSetName="NativeClient")]
+        [parameter(Mandatory = $true, ParameterSetName="WebAndNativeClient")]
+        [ValidateNotNullOrEmpty()]
+        [switch]$EnableNativeClient,
+        [parameter(Mandatory = $false, ParameterSetName="NativeClient")]
+        [parameter(Mandatory = $false, ParameterSetName="WebAndNativeClient")]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$RedirectUris
     )
     
-    $application = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = ""; "enableWebClient" = "true"; "webClientAllowImplicitFlow" = "true"; "replyUrls" = @(); "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @(); "oAuth2Permissions" = @(); "replyUrlsData" = @() }
+    $application = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = ""; "enableWebClient" = "false"; "webClientAllowImplicitFlow" = "false"; "replyUrls" = @(); "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @(); "oAuth2Permissions" = @(); "replyUrlsData" = @() }
 
     $application.applicationName = $Name
-    $application.replyUrls = $ReplyUrls
+    
+    if ($PSCmdlet.ParameterSetName -eq "WebClient") {
+        $application.enableWebClient = $True
+    }
 
+    if ($EnableWebClient.IsPresent) {
+        $application.enableWebClient = $True
+    }
+    
+    if ($AllowImplicitFlow.IsPresent) {
+        $application.webClientAllowImplicitFlow = $True
+    }
+
+
+    if ($EnableNativeClient.IsPresent) {
+        $application.enableNativeClient = $True
+    }
+
+    [System.Collections.ArrayList]$urls = @()
     [System.Collections.ArrayList]$replyUrlsData = @()
     foreach ($replyUrl in $ReplyUrls) {
         $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
         $replyUrlsData.Add($replyUrlData) | Out-Null
+        $urls.Add($replyUrl) | Out-Null
     }
+    foreach ($redirectUri in $RedirectUris) {
+        $replyUrlData = @{ "url" = "$redirectUri"; "type" = 2 }
+        $replyUrlsData.Add($replyUrlData) | Out-Null
+        $urls.Add($redirectUri) | Out-Null
+    }
+    $application.replyUrls = $urls
     $application.replyUrlsData = $replyUrlsData
 
     if ($IdentifierUri) {
-        application.identifierUris = @( $IdentifierUri )
+        $application.identifierUris = @( $IdentifierUri )
     }
     
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PostNewApplication?tenantId=$($B2CSession.TenantId)"
