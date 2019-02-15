@@ -461,7 +461,7 @@ function New-AzureADB2CApplication {
         [string[]]$ReplyUrls,
         [parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [string[]]$IdentifierUri
+        [string]$IdentifierUri
     )
     
     [System.Collections.ArrayList]$replyUrlsData = @()
@@ -472,9 +472,15 @@ function New-AzureADB2CApplication {
         }
     }
 
+    if ($IdentifierUri) {
+        $identifierUris = @( $IdentifierUri )
+    } else {
+        $identifierUris = @()
+    }
+
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PostNewApplication?tenantId=$($B2CSession.TenantId)"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)" }
-    $body = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = "$Name"; "enableWebClient" = "true"; "webClientAllowImplicitFlow" = "true"; "replyUrls" = $ReplyUrls; "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @($IdentifierUri); "oAuth2Permissions" = @(); "replyUrlsData" = $replyUrlsData } | ConvertTo-Json -Compress
+    $body = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = "$Name"; "enableWebClient" = "true"; "webClientAllowImplicitFlow" = "true"; "replyUrls" = $ReplyUrls; "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = $identifierUris; "oAuth2Permissions" = @(); "replyUrlsData" = $replyUrlsData } | ConvertTo-Json -Compress
 
     $response = $null
     $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
