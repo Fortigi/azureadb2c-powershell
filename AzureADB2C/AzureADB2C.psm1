@@ -445,6 +445,9 @@ function New-AzureADB2CApplication {
         Specifies whether this is a Native app
     .PARAMETER RedirectUris
         Specifies the redirect URIs of an Azure AD B2C application.
+    .PARAMETER OAuth2Permissions
+        The collection of OAuth 2.0 permission scopes that the web API (resource) application exposes to client
+        applications. These permission scopes may be granted to client applications during consent.
     .EXAMPLE
         PS C:\>New-AzureADB2CApplication -B2CSession <b2csession> -Name "New Name" -ReplyUrls https://localhost:1234
         This command creates a B2C application in your Azure AD B2C tenant with it's reply URL set to localhost
@@ -459,7 +462,7 @@ function New-AzureADB2CApplication {
         Remove-AzureADB2CApplication        
         Set-AzureADB2CApplication
     #> 
-    [CmdletBinding(DefaultParameterSetName='WebClient')]
+    [CmdletBinding(DefaultParameterSetName = "WebClient")]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -467,30 +470,33 @@ function New-AzureADB2CApplication {
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
-        [parameter(Mandatory = $false, ParameterSetName="WebClient")]
-        [parameter(Mandatory = $true, ParameterSetName="WebAndNativeClient")]
+        [parameter(Mandatory = $false, ParameterSetName = "WebClient")]
+        [parameter(Mandatory = $true, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [switch]$EnableWebClient,
-        [parameter(Mandatory = $true, ParameterSetName="WebClient")]
-        [parameter(Mandatory = $true, ParameterSetName="WebAndNativeClient")]
+        [boolean]$EnableWebClient,
+        [parameter(Mandatory = $true, ParameterSetName = "WebClient")]
+        [parameter(Mandatory = $true, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
         [string[]]$ReplyUrls,
-        [parameter(Mandatory = $false, ParameterSetName="WebClient")]
-        [parameter(Mandatory = $false, ParameterSetName="WebAndNativeClient")]
+        [parameter(Mandatory = $false, ParameterSetName = "WebClient")]
+        [parameter(Mandatory = $false, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
         [string]$IdentifierUri,
-        [parameter(Mandatory = $false, ParameterSetName="WebClient")]
-        [parameter(Mandatory = $false, ParameterSetName="WebAndNativeClient")]
+        [parameter(Mandatory = $false, ParameterSetName = "WebClient")]
+        [parameter(Mandatory = $false, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [switch]$AllowImplicitFlow,
-        [parameter(Mandatory = $true, ParameterSetName="NativeClient")]
-        [parameter(Mandatory = $true, ParameterSetName="WebAndNativeClient")]
+        [boolean]$AllowImplicitFlow,
+        [parameter(Mandatory = $true, ParameterSetName = "NativeClient")]
+        [parameter(Mandatory = $true, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [switch]$EnableNativeClient,
-        [parameter(Mandatory = $false, ParameterSetName="NativeClient")]
-        [parameter(Mandatory = $false, ParameterSetName="WebAndNativeClient")]
+        [boolean]$EnableNativeClient,
+        [parameter(Mandatory = $false, ParameterSetName = "NativeClient")]
+        [parameter(Mandatory = $false, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [string[]]$RedirectUris
+        [string[]]$RedirectUris,
+        [parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [Object[]]$OAuth2Permissions
     )
     
     $application = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = ""; "enableWebClient" = "false"; "webClientAllowImplicitFlow" = "false"; "replyUrls" = @(); "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @(); "oAuth2Permissions" = @(); "replyUrlsData" = @() }
@@ -499,34 +505,30 @@ function New-AzureADB2CApplication {
     
     if ($PSCmdlet.ParameterSetName -eq "WebClient") {
         $application.enableWebClient = $True
+    } else {
+        $application.enableWebClient = $EnableWebClient
     }
 
-    if ($EnableWebClient.IsPresent) {
-        $application.enableWebClient = $True
-    }
-    
-    if ($AllowImplicitFlow.IsPresent) {
-        $application.webClientAllowImplicitFlow = $True
+    $application.webClientAllowImplicitFlow = $AllowImplicitFlow
+    $application.enableNativeClient = $EnableNativeClient
+    if ($application.enableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
+        Write-Error "Application must be webclient and/or native application"
     }
 
-
-    if ($EnableNativeClient.IsPresent) {
-        $application.enableNativeClient = $True
+    if ($OAuth2Permissions) {
+        $application.oAuth2Permissions = $OAuth2Permissions
     }
 
-    [System.Collections.ArrayList]$urls = @()
     [System.Collections.ArrayList]$replyUrlsData = @()
     foreach ($replyUrl in $ReplyUrls) {
         $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
         $replyUrlsData.Add($replyUrlData) | Out-Null
-        $urls.Add($replyUrl) | Out-Null
     }
     foreach ($redirectUri in $RedirectUris) {
         $replyUrlData = @{ "url" = "$redirectUri"; "type" = 2 }
         $replyUrlsData.Add($replyUrlData) | Out-Null
-        $urls.Add($redirectUri) | Out-Null
     }
-    $application.replyUrls = $urls
+    $application.replyUrls = @( $replyUrlsData.url )
     $application.replyUrlsData = $replyUrlsData
 
     if ($IdentifierUri) {
@@ -588,14 +590,12 @@ function Set-AzureADB2CApplication {
         New-AzureADB2CApplication
         Remove-AzureADB2CApplication
     #> 
-    [CmdletBinding(DefaultParameterSetName='Attributes')]
+    [CmdletBinding(DefaultParameterSetName = "Attributes")]
     Param(
-        [parameter(Mandatory = $true, Position = 0, ParameterSetName = "Attributes")]
-        [parameter(Mandatory = $true, Position = 0, ParameterSetName = "Scope")]
+        [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
         [PSCustomObject]$B2CSession,
-        [parameter(Mandatory = $true, Position = 1, ParameterSetName = "Attributes")]
-        [parameter(Mandatory = $true, Position = 1, ParameterSetName = "Scope")]
+        [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$ApplicationId,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
@@ -603,10 +603,22 @@ function Set-AzureADB2CApplication {
         [string]$Name,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
+        [boolean]$EnableWebClient,
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
+        [ValidateNotNullOrEmpty()]
+        [boolean]$AllowImplicitFlow,
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
+        [ValidateNotNullOrEmpty()]
         [string[]]$ReplyUrls,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
         [string]$IdentifierUri,
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
+        [ValidateNotNullOrEmpty()]
+        [boolean]$EnableNativeClient,
+        [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$RedirectUris,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
         [Object[]]$OAuth2Permissions,
@@ -617,20 +629,34 @@ function Set-AzureADB2CApplication {
     
     $application = Get-AzureADB2CApplication -B2CSession $B2CSession -ApplicationId $ApplicationId
 
-    if ($ReplyUrls) {
-        [System.Collections.ArrayList]$replyUrlsData = @()
-        foreach ($replyUrl in $ReplyUrls) {
-            $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
-            $replyUrlsData.Add($replyUrlData) | Out-Null
-        }
-
-        $application.replyUrls = $ReplyUrls
-        $application.replyUrlsData = $replyUrlsData
-    } 
-
     if ($Name) {
         $application.applicationName = $Name
     }
+
+    $application.enableWebClient = $EnableWebClient
+    if ($application.enableWebClient) {
+        $application.enableNativeClient = $EnableNativeClient
+    } else {
+        Write-Error "Native client can only be set when web client is enabled"
+    }
+    $application.enableNativeClient = $EnableNativeClient
+
+    if ($application.enableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
+        Write-Error "Application must be webclient and/or native application"
+    }
+
+    # TODO: only replace type 1 or type 2 urls and leave rest as is
+    [System.Collections.ArrayList]$replyUrlsData = @()
+    foreach ($replyUrl in $ReplyUrls) {
+        $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
+        $replyUrlsData.Add($replyUrlData) | Out-Null
+    }
+    foreach ($redirectUri in $RedirectUris) {
+        $replyUrlData = @{ "url" = "$redirectUri"; "type" = 2 }
+        $replyUrlsData.Add($replyUrlData) | Out-Null
+    }
+    $application.replyUrls = @( $replyUrlsData.url )
+    $application.replyUrlsData = $replyUrlsData
 
     if ($IdentifierUri) {
         $application.identifierUris = @( $IdentifierUri )
