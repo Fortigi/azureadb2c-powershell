@@ -194,6 +194,7 @@ function New-AzureADB2CPolicy {
 
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to create policy"
+        return
     }
 }
 
@@ -232,6 +233,7 @@ function Remove-AzureADB2CPolicy {
 
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to remove policy"
+        return
     }
 }
 
@@ -325,6 +327,7 @@ function New-AzureADB2CKeyContainer {
 
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to create keycontainer"
+        return
     }
 }
 
@@ -368,6 +371,7 @@ function Remove-AzureADB2CKeyContainer {
 
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to Remove-AzureADB2CKeyContainer"
+        return
     }
 }
 
@@ -513,6 +517,7 @@ function New-AzureADB2CApplication {
     $application.enableNativeClient = $EnableNativeClient
     if ($application.enableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
         Write-Error "Application must be webclient and/or native application"
+        return
     }
 
     if ($OAuth2Permissions) {
@@ -544,6 +549,7 @@ function New-AzureADB2CApplication {
 
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to create AzureADB2CApplication"
+        return
     }
 }
 
@@ -633,29 +639,47 @@ function Set-AzureADB2CApplication {
         $application.applicationName = $Name
     }
 
-    $application.enableWebClient = $EnableWebClient
-    if ($application.enableWebClient) {
-        $application.enableNativeClient = $EnableNativeClient
-    } else {
-        Write-Error "Native client can only be set when web client is enabled"
+    if ($PSBoundParameters.ContainsKey('AllowImplicitFlow')) {
+        $application.webClientAllowImplicitFlow = $AllowImplicitFlow
     }
-    $application.enableNativeClient = $EnableNativeClient
-
-    if ($application.enableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
-        Write-Error "Application must be webclient and/or native application"
+    if ($PSBoundParameters.ContainsKey('EnableNativeClient')) {
+        $application.enableNativeClient = $EnableNativeClient
     }
 
     if ($null -eq $ReplyUrls) {
-        $ReplyUrls = ($application.replyUrlsData | Where-Object {$_.type -eq '1'}).url
+        $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '1'}
+        if ($null -ne $UrlsData) {
+            $ReplyUrls = $UrlsData.url
+        }
     }
     if ($null -eq $RedirectUris) {
-        $RedirectUris = ($application.replyUrlsData | Where-Object {$_.type -eq '2'}).url
+        $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '2'}
+        if ($null -ne $urls) {
+            $RedirectUris = $UrlsData.url
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey('EnableWebClient')) {
+        if ($EnableWebClient -eq $False) {
+            $DisableWebClient = $True
+        }
+        if ($EnableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
+            Write-Error "Application must be webclient and/or native application"
+            return
+        }
+    } else {
+        if ($null -eq $ReplyUrls -and $application.enableNativeClient -eq $False) {
+            Write-Error "Application must be webclient and/or native application"
+            return
+        }
     }
 
     [System.Collections.ArrayList]$replyUrlsData = @()
-    foreach ($replyUrl in $ReplyUrls) {
-        $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
-        $replyUrlsData.Add($replyUrlData) | Out-Null
+    if ($DisableWebClient -ne $True) {
+        foreach ($replyUrl in $ReplyUrls) {
+            $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
+            $replyUrlsData.Add($replyUrlData) | Out-Null
+        }  
     }
     foreach ($redirectUri in $RedirectUris) {
         $replyUrlData = @{ "url" = "$redirectUri"; "type" = 2 }
@@ -702,12 +726,11 @@ function Set-AzureADB2CApplication {
         $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PatchApplication?tenantId=$($B2CSession.TenantId)&id=$($application.id)"
         $body = $application | ConvertTo-Json -Compress
 
-        $body
-
         $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
     }
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to update AzureADB2CApplication"
+        return
     }
 }
 
@@ -747,6 +770,7 @@ function Remove-AzureADB2CApplication {
    
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to remove AzureADB2CApplication"
+        return
     }
 }
 
@@ -819,6 +843,7 @@ function Remove-AzureADB2CApplicationPermission {
 
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to remove Permission Grant"
+        return
     }
 
     return $response
