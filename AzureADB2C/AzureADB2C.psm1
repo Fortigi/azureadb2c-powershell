@@ -645,7 +645,13 @@ function Set-AzureADB2CApplication {
         Write-Error "Application must be webclient and/or native application"
     }
 
-    # TODO: only replace type 1 or type 2 urls and leave rest as is
+    if ($null -eq $ReplyUrls) {
+        $ReplyUrls = ($application.replyUrlsData | Where-Object {$_.type -eq '1'}).url
+    }
+    if ($null -eq $RedirectUris) {
+        $RedirectUris = ($application.replyUrlsData | Where-Object {$_.type -eq '2'}).url
+    }
+
     [System.Collections.ArrayList]$replyUrlsData = @()
     foreach ($replyUrl in $ReplyUrls) {
         $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
@@ -695,6 +701,8 @@ function Set-AzureADB2CApplication {
     } else {
         $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PatchApplication?tenantId=$($B2CSession.TenantId)&id=$($application.id)"
         $body = $application | ConvertTo-Json -Compress
+
+        $body
 
         $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
     }
