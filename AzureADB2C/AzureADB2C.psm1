@@ -45,13 +45,13 @@ function Get-AzureADB2CAccessToken {
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$TenantId,
+        [String]$TenantId,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$Username,
+        [String]$Username,
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Password
+        [String]$Password
     )
 
     # Log in to Azure.
@@ -93,13 +93,13 @@ function Get-AzureADB2CSession {
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$TenantId,
+        [String]$TenantId,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$Username,
+        [String]$Username,
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Password
+        [String]$Password
     )
 
     $accesstoken = Get-AzureADB2CAccessToken -Username $Username -Password $Password -TenantId $TenantId
@@ -172,11 +172,11 @@ function New-AzureADB2CPolicy {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, ParameterSetName = "Policy")]
         [ValidateNotNullOrEmpty()]
-        [string]$Policy,
+        [String]$Policy,
         [parameter(Mandatory = $true, ParameterSetName = "PolicyFile")]
         [ValidateNotNullOrEmpty()]
         [ValidateScript( {  Test-Path -Path $_ -PathType Leaf  })]
-        [string]$FilePath
+        [String]$FilePath
     )
 
     if ($FilePath) {
@@ -222,7 +222,7 @@ function Remove-AzureADB2CPolicy {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$PolicyId
+        [String]$PolicyId
     )
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/trustframework?tenantId=$($B2CSession.TenantId)&policyId=$PolicyId"
@@ -309,14 +309,14 @@ function New-AzureADB2CKeyContainer {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$Name,
+        [String]$Name,
         [parameter(Mandatory = $true, Position = 2)]
         [ValidateSet(
             'enc',
             'sig'
         )]        
         [ValidateNotNullOrEmpty()]
-        [string]$KeyUsage    
+        [String]$KeyUsage    
     )
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/PutNewKey?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name&secretType=rsa&keySize=0&keyUsage=$KeyUsage"
@@ -360,7 +360,7 @@ function Remove-AzureADB2CKeyContainer {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$Name
+        [String]$Name
     )
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/DeleteKeySet?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name"
@@ -403,7 +403,7 @@ function Get-AzureADB2CApplication {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [string]$ApplicationId
+        [String]$ApplicationId
     )
 
     if ($ApplicationId) {
@@ -473,31 +473,31 @@ function New-AzureADB2CApplication {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$Name,
+        [String]$Name,
         [parameter(Mandatory = $false, ParameterSetName = "WebClient")]
         [parameter(Mandatory = $true, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [boolean]$EnableWebClient,
+        [Boolean]$EnableWebClient,
         [parameter(Mandatory = $true, ParameterSetName = "WebClient")]
         [parameter(Mandatory = $true, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [string[]]$ReplyUrls,
+        [String[]]$ReplyUrls,
         [parameter(Mandatory = $false, ParameterSetName = "WebClient")]
         [parameter(Mandatory = $false, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [string]$IdentifierUri,
+        [String]$IdentifierUri,
         [parameter(Mandatory = $false, ParameterSetName = "WebClient")]
         [parameter(Mandatory = $false, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [boolean]$AllowImplicitFlow,
+        [Boolean]$AllowImplicitFlow,
         [parameter(Mandatory = $true, ParameterSetName = "NativeClient")]
         [parameter(Mandatory = $true, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [boolean]$EnableNativeClient,
+        [Boolean]$EnableNativeClient,
         [parameter(Mandatory = $false, ParameterSetName = "NativeClient")]
         [parameter(Mandatory = $false, ParameterSetName = "WebAndNativeClient")]
         [ValidateNotNullOrEmpty()]
-        [string[]]$RedirectUris,
+        [String[]]$RedirectUris,
         [parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         [Object[]]$OAuth2Permissions
@@ -603,28 +603,28 @@ function Set-AzureADB2CApplication {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$ApplicationId,
+        [String]$ApplicationId,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [string]$Name,
+        [String]$Name,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [boolean]$EnableWebClient,
+        [Boolean]$EnableWebClient,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [boolean]$AllowImplicitFlow,
+        [Boolean]$AllowImplicitFlow,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [string[]]$ReplyUrls,
+        [String[]]$ReplyUrls,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [string]$IdentifierUri,
+        [String]$IdentifierUri,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [boolean]$EnableNativeClient,
+        [Boolean]$EnableNativeClient,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
-        [string[]]$RedirectUris,
+        [String[]]$RedirectUris,
         [parameter(Mandatory = $false, ParameterSetName = "Attributes")]
         [ValidateNotNullOrEmpty()]
         [Object[]]$OAuth2Permissions,
@@ -633,69 +633,6 @@ function Set-AzureADB2CApplication {
         [Microsoft.Open.AzureAD.Model.RequiredResourceAccess]$RequiredResourceAccess     
     )
     
-    $application = Get-AzureADB2CApplication -B2CSession $B2CSession -ApplicationId $ApplicationId
-
-    if ($Name) {
-        $application.applicationName = $Name
-    }
-
-    if ($PSBoundParameters.ContainsKey('AllowImplicitFlow')) {
-        $application.webClientAllowImplicitFlow = $AllowImplicitFlow
-    }
-    if ($PSBoundParameters.ContainsKey('EnableNativeClient')) {
-        $application.enableNativeClient = $EnableNativeClient
-    }
-
-    if ($null -eq $ReplyUrls) {
-        $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '1'}
-        if ($null -ne $UrlsData) {
-            $ReplyUrls = $UrlsData.url
-        }
-    }
-    if ($null -eq $RedirectUris) {
-        $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '2'}
-        if ($null -ne $urls) {
-            $RedirectUris = $UrlsData.url
-        }
-    }
-
-    if ($PSBoundParameters.ContainsKey('EnableWebClient')) {
-        if ($EnableWebClient -eq $False) {
-            $DisableWebClient = $True
-        }
-        if ($EnableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
-            Write-Error "Application must be webclient and/or native application"
-            return
-        }
-    } else {
-        if ($null -eq $ReplyUrls -and $application.enableNativeClient -eq $False) {
-            Write-Error "Application must be webclient and/or native application"
-            return
-        }
-    }
-
-    [System.Collections.ArrayList]$replyUrlsData = @()
-    if ($DisableWebClient -ne $True) {
-        foreach ($replyUrl in $ReplyUrls) {
-            $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
-            $replyUrlsData.Add($replyUrlData) | Out-Null
-        }  
-    }
-    foreach ($redirectUri in $RedirectUris) {
-        $replyUrlData = @{ "url" = "$redirectUri"; "type" = 2 }
-        $replyUrlsData.Add($replyUrlData) | Out-Null
-    }
-    $application.replyUrls = @( $replyUrlsData.url )
-    $application.replyUrlsData = $replyUrlsData
-
-    if ($IdentifierUri) {
-        $application.identifierUris = @( $IdentifierUri )
-    }
-
-    if ($OAuth2Permissions) {
-        $application.oAuth2Permissions = $OAuth2Permissions
-    }
-
     $response = $null
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
@@ -723,11 +660,73 @@ function Set-AzureADB2CApplication {
             $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers
         }
     } else {
+        $application = Get-AzureADB2CApplication -B2CSession $B2CSession -ApplicationId $ApplicationId
+
+        if ($Name) {
+            $application.applicationName = $Name
+        }
+    
+        if ($PSBoundParameters.ContainsKey('AllowImplicitFlow')) {
+            $application.webClientAllowImplicitFlow = $AllowImplicitFlow
+        }
+        if ($PSBoundParameters.ContainsKey('EnableNativeClient')) {
+            $application.enableNativeClient = $EnableNativeClient
+        }
+    
+        if ($null -eq $ReplyUrls) {
+            $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '1'}
+            if ($null -ne $UrlsData) {
+                $ReplyUrls = $UrlsData.url
+            }
+        }
+        if ($null -eq $RedirectUris) {
+            $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '2'}
+            if ($null -ne $urls) {
+                $RedirectUris = $UrlsData.url
+            }
+        }
+    
+        if ($PSBoundParameters.ContainsKey('EnableWebClient')) {
+            if ($EnableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
+                Write-Error "Application must be webclient and/or native application"
+                return
+            }
+            if ($EnableWebClient -eq $False) {
+                Clear-Variable ReplyUrls
+            }
+        } else {
+            if ($null -eq $ReplyUrls -and $application.enableNativeClient -eq $False) {
+                Write-Error "Application must be webclient and/or native application"
+                return
+            }
+        }
+    
+        [System.Collections.ArrayList]$replyUrlsData = @()
+        foreach ($replyUrl in $ReplyUrls) {
+            $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
+            $replyUrlsData.Add($replyUrlData) | Out-Null
+        }
+        foreach ($redirectUri in $RedirectUris) {
+            $replyUrlData = @{ "url" = "$redirectUri"; "type" = 2 }
+            $replyUrlsData.Add($replyUrlData) | Out-Null
+        }
+        $application.replyUrls = @( $replyUrlsData.url )
+        $application.replyUrlsData = $replyUrlsData
+    
+        if ($IdentifierUri) {
+            $application.identifierUris = @( $IdentifierUri )
+        }
+    
+        if ($OAuth2Permissions) {
+            $application.oAuth2Permissions = $OAuth2Permissions
+        }
+
         $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PatchApplication?tenantId=$($B2CSession.TenantId)&id=$($application.id)"
         $body = $application | ConvertTo-Json -Compress
 
         $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
     }
+
     if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to update AzureADB2CApplication"
         return
@@ -759,7 +758,7 @@ function Remove-AzureADB2CApplication {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true, Position = 1)]
         [ValidateNotNullOrEmpty()]
-        [string]$ObjectId
+        [String]$ObjectId
     )
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/DeleteApplication?tenantId=$($B2CSession.TenantId)&id=$ObjectId"
@@ -797,7 +796,7 @@ function Get-AzureADB2CApplicationPermission {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$ApplicationId
+        [String]$ApplicationId
     )
             
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/RetrievePermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId"    
@@ -832,7 +831,7 @@ function Remove-AzureADB2CApplicationPermission {
         [PSCustomObject]$B2CSession,
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$PermissionGrantId
+        [String]$PermissionGrantId
     )
             
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/DeletePermission?tenantId=$($B2CSession.TenantId)&permissionGrantId=$PermissionGrantId"    
