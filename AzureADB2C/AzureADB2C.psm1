@@ -57,7 +57,7 @@ function Get-AzureADB2CAccessToken {
     # Log in to Azure.
     $User = $Username + "@" + $TenantId
     $Cred = New-Object System.Management.Automation.PSCredential ($User, ($Password | ConvertTo-SecureString -AsPlainText -Force))
-    Login-AzureRmAccount -TenantId $TenantId -Credential $Cred | Out-Null
+    Connect-AzureRmAccount -TenantId $TenantId -Credential $Cred | Out-Null
 
     # Retrieve all tokens
     $context = Set-AzureRmContext -TenantId $TenantId -Name B2C -Force
@@ -126,7 +126,7 @@ function Get-AzureADB2CPolicy {
     .LINK
         New-AzureADB2CPolicy
         Remove-AzureADB2CPolicy
-    #>    
+    #>
     [CmdletBinding()]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
@@ -153,7 +153,7 @@ function New-AzureADB2CPolicy {
     .PARAMETER Policy
         Specifies a XML policy.
     .PARAMETER FilePath
-        Specifies a path to a file.        
+        Specifies a path to a file.
     .EXAMPLE
         PS C:\>New-AzureADB2CPolicy -B2CSession <b2csession> -Policy <string>
         This command creates a policy from a string in your Azure AD B2C tenant
@@ -163,8 +163,8 @@ function New-AzureADB2CPolicy {
     .LINK
         Get-AzureADB2CPolicy
         Remove-AzureADB2CPolicy
-    #>  
-    [CmdletBinding()]
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True)]
     Param(
         [parameter(Mandatory = $true, Position = 0, ParameterSetName = "Policy")]
         [parameter(Mandatory = $true, Position = 0, ParameterSetName = "PolicyFile")]
@@ -189,12 +189,14 @@ function New-AzureADB2CPolicy {
     Add-Type -AssemblyName System.Web
     $body = "<string xmlns=`"http://schemas.microsoft.com/2003/10/Serialization/`">$([System.Web.HttpUtility]::HtmlEncode($Policy))</string>"
 
-    $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/xml" -Headers $headers -UseBasicParsing
+    if ($pscmdlet.ShouldProcess("policy")) {
+        $response = $null
+        $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/xml" -Headers $headers -UseBasicParsing
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to create policy"
-        return
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to create policy"
+            return
+        }
     }
 }
 
@@ -214,8 +216,8 @@ function Remove-AzureADB2CPolicy {
     .LINK
         Get-AzureADB2CPolicy
         New-AzureADB2CPolicy
-    #>  
-    [CmdletBinding()]
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True)]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -228,12 +230,14 @@ function Remove-AzureADB2CPolicy {
     $uri = "https://main.b2cadmin.ext.azure.com/api/trustframework?tenantId=$($B2CSession.TenantId)&policyId=$PolicyId"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
-    $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
+    if ($pscmdlet.ShouldProcess($PolicyId)) {
+        $response = $null
+        $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to remove policy"
-        return
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to remove policy"
+            return
+        }
     }
 }
 
@@ -252,8 +256,8 @@ function Get-AzureADB2CKeyContainer {
         This command gets all keycontainers of your Azure AD B2C tenant
     .LINK
         New-AzureADB2CKeyContainer
-        Remove-AzureADB2CKeyContainer        
-    #>  
+        Remove-AzureADB2CKeyContainer
+    #>
     [CmdletBinding()]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
@@ -272,7 +276,7 @@ function Get-AzureADB2CKeyContainer {
 
     $response = $null
     $response = Invoke-WebRequest -Uri $uri -Headers $headers -ContentType "application/json" | ConvertFrom-Json
-    
+
     return $response
 }
 
@@ -288,7 +292,7 @@ function New-AzureADB2CKeyContainer {
     .PARAMETER Name
         Specifies the name of a keycontainer.
     .PARAMETER KeyUsage
-        Specifies the key usage 
+        Specifies the key usage
         The acceptable values for this paramter are:
         - enc
         - sig
@@ -300,9 +304,9 @@ function New-AzureADB2CKeyContainer {
         This command creates a new keycontainer for signing in your Azure AD B2C tenant
     .LINK
         Get-AzureADB2CKeyContainer
-        Remove-AzureADB2CKeyContainer        
-    #> 
-    [CmdletBinding()]
+        Remove-AzureADB2CKeyContainer
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True)]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -314,30 +318,32 @@ function New-AzureADB2CKeyContainer {
         [ValidateSet(
             'enc',
             'sig'
-        )]        
+        )]
         [ValidateNotNullOrEmpty()]
-        [String]$KeyUsage    
+        [String]$KeyUsage
     )
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/PutNewKey?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name&secretType=rsa&keySize=0&keyUsage=$KeyUsage"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)" }
 
-    $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method PUT -Headers $headers -UseBasicParsing
+    if ($pscmdlet.ShouldProcess($Name)) {
+        $response = $null
+        $response = Invoke-WebRequest -Uri $uri -Method PUT -Headers $headers -UseBasicParsing
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to create keycontainer"
-        return
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to create keycontainer"
+            return
+        }
     }
 }
 
 function Remove-AzureADB2CKeyContainer {
     <#
     .SYNOPSIS
-        Deletes a B2C keycontainer by name. 
+        Deletes a B2C keycontainer by name.
     .DESCRIPTION
         The Remove-AzureADB2CKeyContainer cmdlet removes an Azure Active Directory B2C keycontainer.
-        Azure AD B2C will automatically create a backup with the same name followed by a .bak extension. 
+        Azure AD B2C will automatically create a backup with the same name followed by a .bak extension.
         Also remove this keycontainer if you want to fully delete the keycontainer.
     .PARAMETER B2CSession
         Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
@@ -348,12 +354,12 @@ function Remove-AzureADB2CKeyContainer {
         This command removes the keycontainer with the given name from your Azure AD B2C tenant
     .EXAMPLE
         PS C:\>Remove-AzureADB2CKeyContainer -B2CSession <b2csession> -KeyName <string>.bak
-        This command removes the backup of the keycontainer with the given name from your Azure AD B2C tenant    
+        This command removes the backup of the keycontainer with the given name from your Azure AD B2C tenant
     .LINK
         Get-AzureADB2CKeyContainer
-        New-AzureADB2CKeyContainer        
-    #>  
-    [CmdletBinding()]
+        New-AzureADB2CKeyContainer
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True)]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -366,12 +372,14 @@ function Remove-AzureADB2CKeyContainer {
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/DeleteKeySet?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
-    $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
+    if ($pscmdlet.ShouldProcess($Name)) {
+        $response = $null
+        $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to Remove-AzureADB2CKeyContainer"
-        return
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to Remove-AzureADB2CKeyContainer"
+            return
+        }
     }
 }
 
@@ -407,7 +415,7 @@ function Get-AzureADB2CApplication {
     )
 
     if ($ApplicationId) {
-        $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/GetApplication?tenantId=$($B2CSession.TenantId)&applicationId=$ApplicationId"    
+        $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/GetApplication?tenantId=$($B2CSession.TenantId)&applicationId=$ApplicationId"
     }
     else {
         $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/GetAllV2Applications?tenantId=$($B2CSession.TenantId)"
@@ -463,10 +471,10 @@ function New-AzureADB2CApplication {
         This command creates a B2C application in your Azure AD B2C tenant with it's reply URL set to localhost
     .LINK
         Get-AzureADB2CApplication
-        Remove-AzureADB2CApplication        
+        Remove-AzureADB2CApplication
         Set-AzureADB2CApplication
-    #> 
-    [CmdletBinding(DefaultParameterSetName = "WebClient")]
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True, DefaultParameterSetName = "WebClient")]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -502,11 +510,11 @@ function New-AzureADB2CApplication {
         [ValidateNotNullOrEmpty()]
         [Object[]]$OAuth2Permissions
     )
-    
+
     $application = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = ""; "enableWebClient" = "false"; "webClientAllowImplicitFlow" = "false"; "replyUrls" = @(); "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @(); "oAuth2Permissions" = @(); "replyUrlsData" = @() }
 
     $application.applicationName = $Name
-    
+
     if ($PSCmdlet.ParameterSetName -eq "WebClient") {
         $application.enableWebClient = $True
     } else {
@@ -539,17 +547,19 @@ function New-AzureADB2CApplication {
     if ($IdentifierUri) {
         $application.identifierUris = @( $IdentifierUri )
     }
-    
+
     $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PostNewApplication?tenantId=$($B2CSession.TenantId)"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)" }
     $body = $application | ConvertTo-Json -Compress
 
-    $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+    if ($PSCmdlet.ShouldProcess($application.applicationName)) {
+        $response = $null
+        $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to create AzureADB2CApplication"
-        return
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to create AzureADB2CApplication"
+            return
+        }
     }
 }
 
@@ -562,7 +572,7 @@ function Set-AzureADB2CApplication {
     .PARAMETER B2CSession
         Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
     .PARAMETER ApplicationId
-        Specifies the ID of an Azure Active Directory B2C application.        
+        Specifies the ID of an Azure Active Directory B2C application.
     .PARAMETER Name
         Specifies the name of an Azure AD B2C application.
     .PARAMETER IdentifierUri
@@ -595,8 +605,8 @@ function Set-AzureADB2CApplication {
         Get-AzureADB2CApplication
         New-AzureADB2CApplication
         Remove-AzureADB2CApplication
-    #> 
-    [CmdletBinding(DefaultParameterSetName = "Attributes")]
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True, DefaultParameterSetName = "Attributes")]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -630,9 +640,9 @@ function Set-AzureADB2CApplication {
         [Object[]]$OAuth2Permissions,
         [parameter(Mandatory = $false, ParameterSetName = "Scope")]
         [ValidateNotNullOrEmpty()]
-        [Microsoft.Open.AzureAD.Model.RequiredResourceAccess]$RequiredResourceAccess     
+        [Microsoft.Open.AzureAD.Model.RequiredResourceAccess]$RequiredResourceAccess
     )
-    
+
     $response = $null
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
@@ -642,22 +652,26 @@ function Set-AzureADB2CApplication {
         $permission = $permissions | Where-Object { $_.resourceId -eq $serviceprincipal.ObjectId }
 
         [System.Collections.ArrayList]$scopes = @()
-        foreach ($access in $req.ResourceAccess) { 
+        foreach ($access in $req.ResourceAccess) {
             $scope = $serviceprincipal.Oauth2Permissions | where-object { $_.Id -eq $access.Id }
             $scopes.Add($scope.Value) | Out-Null
         }
-        
+
         if ($permission) {
-            $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/UpdatePermission?tenantId=$($B2CSession.TenantId)" 
+            $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/UpdatePermission?tenantId=$($B2CSession.TenantId)"
             $permission.permissionValues = $scopes
             $body = $permission | ConvertTo-Json -Compress
 
-            $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+            if ($pscmdlet.ShouldProcess($ApplicationId)) {
+                $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+            }
         } else {
-            $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/AddPermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId&resourceApplicationId=$($RequiredResourceAccess.ResourceAppId)" 
+            $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/AddPermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId&resourceApplicationId=$($RequiredResourceAccess.ResourceAppId)"
             $body = ConvertTo-Json -Compress -InputObject @($scopes)
-            
-            $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers
+
+            if ($pscmdlet.ShouldProcess($ApplicationId)) {
+                    $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/json" -Headers $headers
+            }
         }
     } else {
         $application = Get-AzureADB2CApplication -B2CSession $B2CSession -ApplicationId $ApplicationId
@@ -665,14 +679,14 @@ function Set-AzureADB2CApplication {
         if ($Name) {
             $application.applicationName = $Name
         }
-    
+
         if ($PSBoundParameters.ContainsKey('AllowImplicitFlow')) {
             $application.webClientAllowImplicitFlow = $AllowImplicitFlow
         }
         if ($PSBoundParameters.ContainsKey('EnableNativeClient')) {
             $application.enableNativeClient = $EnableNativeClient
         }
-    
+
         if ($null -eq $ReplyUrls) {
             $UrlsData = $application.replyUrlsData | Where-Object {$_.type -eq '1'}
             if ($null -ne $UrlsData) {
@@ -685,7 +699,7 @@ function Set-AzureADB2CApplication {
                 $RedirectUris = $UrlsData.url
             }
         }
-    
+
         if ($PSBoundParameters.ContainsKey('EnableWebClient')) {
             if ($EnableWebClient -eq $False -and $application.enableNativeClient -eq $False) {
                 Write-Error "Application must be webclient and/or native application"
@@ -700,7 +714,7 @@ function Set-AzureADB2CApplication {
                 return
             }
         }
-    
+
         [System.Collections.ArrayList]$replyUrlsData = @()
         foreach ($replyUrl in $ReplyUrls) {
             $replyUrlData = @{ "url" = "$replyUrl"; "type" = 1 }
@@ -712,11 +726,11 @@ function Set-AzureADB2CApplication {
         }
         $application.replyUrls = @( $replyUrlsData.url )
         $application.replyUrlsData = $replyUrlsData
-    
+
         if ($IdentifierUri) {
             $application.identifierUris = @( $IdentifierUri )
         }
-    
+
         if ($OAuth2Permissions) {
             $application.oAuth2Permissions = $OAuth2Permissions
         }
@@ -724,10 +738,12 @@ function Set-AzureADB2CApplication {
         $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/PatchApplication?tenantId=$($B2CSession.TenantId)&id=$($application.id)"
         $body = $application | ConvertTo-Json -Compress
 
-        $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+        if ($pscmdlet.ShouldProcess($ApplicationId)) {
+            $response = Invoke-WebRequest -Uri $uri -Method PATCH -Body $body -ContentType "application/json" -Headers $headers -UseBasicParsing
+        }
     }
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+    if ($null -ne $response -and !($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
         Write-Error "Failed to update AzureADB2CApplication"
         return
     }
@@ -742,16 +758,16 @@ function Remove-AzureADB2CApplication {
     .PARAMETER B2CSession
         Specifies a B2C session object containing the B2C tenant name and an OAuth2 access token.
     .PARAMETER ObjectId
-        Specifies the object ID of an Azure Active Directory B2C application. 
+        Specifies the object ID of an Azure Active Directory B2C application.
     .EXAMPLE
         PS C:\>Remove-AzureADB2CApplication -B2CSession <b2csession> -ApplicationObjectId <string>
-        This command removes the B2C application with the given object ID from your Azure AD B2C tenant 
+        This command removes the B2C application with the given object ID from your Azure AD B2C tenant
     .LINK
         Get-AzureADB2CApplication
         New-AzureADB2CApplication
-        Set-AzureADB2CApplication        
-    #> 
-    [CmdletBinding()]
+        Set-AzureADB2CApplication
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True)]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -765,11 +781,13 @@ function Remove-AzureADB2CApplication {
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
     $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
-   
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to remove AzureADB2CApplication"
-        return
+    if ($pscmdlet.ShouldProcess($ObjectId)) {
+        $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
+
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to remove AzureADB2CApplication"
+            return
+        }
     }
 }
 
@@ -798,8 +816,8 @@ function Get-AzureADB2CApplicationPermission {
         [ValidateNotNullOrEmpty()]
         [String]$ApplicationId
     )
-            
-    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/RetrievePermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId"    
+
+    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/RetrievePermissions?tenantId=$($B2CSession.TenantId)&clientApplicationId=$ApplicationId"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
     $response = $null
@@ -824,7 +842,7 @@ function Remove-AzureADB2CApplicationPermission {
     .LINK
         Not used
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$True)]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -833,16 +851,18 @@ function Remove-AzureADB2CApplicationPermission {
         [ValidateNotNullOrEmpty()]
         [String]$PermissionGrantId
     )
-            
-    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/DeletePermission?tenantId=$($B2CSession.TenantId)&permissionGrantId=$PermissionGrantId"    
+
+    $uri = "https://main.b2cadmin.ext.azure.com/api/ApplicationV2/DeletePermission?tenantId=$($B2CSession.TenantId)&permissionGrantId=$PermissionGrantId"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
     $response = $null
-    $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
+    if ($pscmdlet.ShouldProcess()) {
+        $response = Invoke-WebRequest -Uri $uri -Method DELETE -Headers $headers
 
-    if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
-        Write-Error "Failed to remove Permission Grant"
-        return
+        if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
+            Write-Error "Failed to remove Permission Grant"
+            return
+        }
     }
 
     return $response
