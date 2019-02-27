@@ -107,7 +107,7 @@ function Get-AzureADB2CSession {
 
     $b2csession = [PSCustomObject]@{
         TenantId    = $TenantId
-        AccessToken = $accesstoken
+        AccessToken = $accesstoken[-1]
     }
 
     return $b2csession
