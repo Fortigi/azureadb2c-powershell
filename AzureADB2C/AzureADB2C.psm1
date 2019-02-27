@@ -42,6 +42,7 @@ function Get-AzureADB2CAccessToken {
         Get-AzureADB2CSession
     #>
     [CmdletBinding()]
+    [OutputType([String])]
     Param(
         [parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
