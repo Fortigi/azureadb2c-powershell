@@ -58,9 +58,7 @@ function Get-AzureADB2CAccessToken {
     # Log in to Azure.
     $User = $Username + "@" + $TenantId
     $Cred = New-Object System.Management.Automation.PSCredential ($User, ($Password | ConvertTo-SecureString -AsPlainText -Force))
-    $connection = Connect-AzureRmAccount -TenantId $TenantId -Credential $Cred
-
-    Write-Host $connection.Context | Format-List
+    $var = Connect-AzureRmAccount -TenantId $TenantId -Credential $Cred
 
     # Retrieve all tokens
     $context = Set-AzureRmContext -TenantId $TenantId -Name B2C -Force
@@ -109,7 +107,7 @@ function Get-AzureADB2CSession {
 
     $b2csession = [PSCustomObject]@{
         TenantId    = $TenantId
-        AccessToken = $accesstoken[-1]
+        AccessToken = $accesstoken
     }
 
     return $b2csession
