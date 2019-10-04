@@ -181,7 +181,7 @@ function New-AzureADB2CPolicy {
     )
 
     if ($FilePath) {
-        $Policy = (Get-Content -Path $FilePath -Encoding UTF8) -join "`n"
+        $Policy = Get-Content -Path $FilePath -Encoding UTF8 -Raw
     }
 
     $uri = "https://main.b2cadmin.ext.azure.com/api/trustframework?tenantId=$($B2CSession.TenantId)&overwriteIfExists=true"
@@ -189,6 +189,8 @@ function New-AzureADB2CPolicy {
 
     Add-Type -AssemblyName System.Web
     $body = "<string xmlns=`"http://schemas.microsoft.com/2003/10/Serialization/`">$([System.Web.HttpUtility]::HtmlEncode($Policy))</string>"
+
+    Write-Verbose("About to upload policy: $body")
 
     if ($pscmdlet.ShouldProcess("policy")) {
         $response = $null
