@@ -190,8 +190,6 @@ function New-AzureADB2CPolicy {
     Add-Type -AssemblyName System.Web
     $body = "<string xmlns=`"http://schemas.microsoft.com/2003/10/Serialization/`">$([System.Web.HttpUtility]::HtmlEncode($Policy))</string>"
 
-    Write-Verbose("About to upload policy: $body")
-
     if ($pscmdlet.ShouldProcess("policy")) {
         $response = $null
         $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/xml" -Headers $headers -UseBasicParsing
