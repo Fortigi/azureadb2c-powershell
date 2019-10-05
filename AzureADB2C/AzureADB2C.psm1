@@ -269,7 +269,6 @@ function Get-AzureADB2CKeyContainer {
         [String]$Name
     )
 
-    $Name = $Name.TrimEnd()
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/GetKeyList?tenantId=$($B2CSession.TenantId)&options=6"
     if ($Name) {
         $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/GetKeySetMetadata?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name"
@@ -325,7 +324,6 @@ function New-AzureADB2CKeyContainer {
         [String]$KeyUsage
     )
 
-    $Name = $Name.TrimEnd()
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/PutNewKey?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name&secretType=rsa&keySize=0&keyUsage=$KeyUsage"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)" }
 
@@ -372,7 +370,6 @@ function Remove-AzureADB2CKeyContainer {
         [String]$Name
     )
 
-    $Name = $Name.TrimEnd()
     $uri = "https://main.b2cadmin.ext.azure.com/api/Jwks/DeleteKeySet?tenantId=$($B2CSession.TenantId)&storageReferenceId=$Name"
     $headers = @{ "Authorization" = "Bearer $($B2CSession.AccessToken)"; "Accept" = "application/json, text/javascript, */*; q=0.01" }
 
@@ -515,7 +512,6 @@ function New-AzureADB2CApplication {
         [Object[]]$OAuth2Permissions
     )
 
-    $Name = $Name.TrimEnd()
     $application = @{ "id" = ""; "applicationVersion" = 1; "applicationId" = ""; "applicationName" = ""; "enableWebClient" = "false"; "webClientAllowImplicitFlow" = "false"; "replyUrls" = @(); "webClientAppKeys" = @(); "enableNativeClient" = "false"; "identifierUris" = @(); "oAuth2Permissions" = @(); "replyUrlsData" = @() }
 
     $application.applicationName = $Name

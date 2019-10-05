@@ -12,7 +12,7 @@
     RootModule        = 'AzureADB2C.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '1.7.288'
+    ModuleVersion     = '1.7.289'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
