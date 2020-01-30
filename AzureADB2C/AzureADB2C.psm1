@@ -192,7 +192,7 @@ function New-AzureADB2CPolicy {
 
     if ($pscmdlet.ShouldProcess("policy")) {
         $response = $null
-        $response = Invoke-WebRequest -Uri $uri -Method POST -Body $body -ContentType "application/xml" -Headers $headers -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $uri -Method POST -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -ContentType "application/xml" -Headers $headers -UseBasicParsing
 
         if (!($response.StatusCode -ge 200 -and $response.StatusCode -le 299)) {
             Write-Error "Failed to create policy"
